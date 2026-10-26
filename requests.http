@@ -1,0 +1,110 @@
+### Requisições de teste (VS Code REST Client / Thunder Client / Insomnia)
+### Pré-requisito: banco criado com database/db_vendas.sql e API rodando em :3000
+@base = http://localhost:3000
+
+### TESTE 1 - Cadastrar vendedor (esperado 201)
+POST {{base}}/vendedores
+Content-Type: application/json
+
+{ "nome": "Gabriela Torres", "meta_mensal": 16000, "percentual_base": 5 }
+
+### TESTE 1b - Cadastro inválido (esperado 400)
+POST {{base}}/vendedores
+Content-Type: application/json
+
+{ "nome": "", "meta_mensal": -10, "percentual_base": 5 }
+
+### Listar e consultar vendedores (200 / 404)
+GET {{base}}/vendedores
+
+###
+GET {{base}}/vendedores/1
+
+###
+GET {{base}}/vendedores/999
+
+### TESTE 1c - Registrar venda com comissão correta (esperado 201, comissão = 180.00)
+### R$ 2.000, PJ, Norte, base 5% -> 5 + 3 + 1 = 9%
+POST {{base}}/vendas
+Content-Type: application/json
+
+{ "id_venda": 2001, "id_vendedor": 1, "id_regiao": 1, "data_venda": "2026-10-25 10:00:00", "valor_venda": 2000, "tipo_cliente": "PJ" }
+
+### TESTE 2 - Código de venda duplicado (esperado 409)
+POST {{base}}/vendas
+Content-Type: application/json
+
+{ "id_venda": 2001, "id_vendedor": 1, "id_regiao": 1, "valor_venda": 500, "tipo_cliente": "PF" }
+
+### TESTE 3a - Vendedor inexistente (esperado 404)
+POST {{base}}/vendas
+Content-Type: application/json
+
+{ "id_vendedor": 999, "id_regiao": 1, "valor_venda": 500, "tipo_cliente": "PF" }
+
+### TESTE 3b - Vendedor inativo (id 6 vem inativo no script) (esperado 400)
+POST {{base}}/vendas
+Content-Type: application/json
+
+{ "id_vendedor": 6, "id_regiao": 1, "valor_venda": 500, "tipo_cliente": "PF" }
+
+### Valor negativo (esperado 400) e região inexistente (esperado 404)
+POST {{base}}/vendas
+Content-Type: application/json
+
+{ "id_vendedor": 1, "id_regiao": 1, "valor_venda": -50, "tipo_cliente": "PF" }
+
+###
+POST {{base}}/vendas
+Content-Type: application/json
+
+{ "id_vendedor": 1, "id_regiao": 99, "valor_venda": 500, "tipo_cliente": "PF" }
+
+### TESTE 4 - Atualizar meta mensal (esperado 200)
+PUT {{base}}/vendedores/3
+Content-Type: application/json
+
+{ "meta_mensal": 19000 }
+
+### Atualizar meta e percentual base
+PUT {{base}}/vendedores/3
+Content-Type: application/json
+
+{ "meta_mensal": 19000, "percentual_base": 6.5 }
+
+### TESTE 5 - Consultas por vendedor e por região (200)
+GET {{base}}/vendas
+
+###
+GET {{base}}/vendas/vendedor/1
+
+###
+GET {{base}}/vendas/regiao/2
+
+###
+GET {{base}}/vendas/vendedor/999
+
+### Desativar vendedor (200) - histórico de vendas preservado
+PATCH {{base}}/vendedores/5/desativar
+
+###
+GET {{base}}/vendas/vendedor/5
+
+### Excluir venda (200) e excluir inexistente (404)
+DELETE {{base}}/vendas/2001
+
+###
+DELETE {{base}}/vendas/2001
+
+### TESTE 6 - Relatório mensal com atingimento de metas (200)
+GET {{base}}/relatorios/performance?inicio=2026-10-01&fim=2026-10-31
+
+### Relatório com parâmetros inválidos (400)
+GET {{base}}/relatorios/performance?inicio=2026-10-31&fim=2026-10-01
+
+###
+GET {{base}}/relatorios/performance
+
+### TESTE 7 - Tratamento de erro de conexão:
+### pare o MySQL (ou coloque DB_PASSWORD errada no .env), reinicie a API e chame:
+GET {{base}}/vendedores
